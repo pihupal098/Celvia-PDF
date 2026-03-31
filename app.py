@@ -69,7 +69,7 @@ if uploaded_pdf:
                     master_sku_pdfs[found_master_sku].insert_pdf(doc, from_page=page_num, to_page=page_num)
                     
                     # ✂️ CROP 2: INVOICE (Left 0, Right Full, Top 46% to 83% + 90 Degree Rotation)
-                    page.set_cropbox(fitz.Rect(0, rect.height * 0.46, rect.width, rect.height * 0.86))
+                    page.set_cropbox(fitz.Rect(0, rect.height * 0.46, rect.width, rect.height * 0.88))
                     page.set_rotation(90) # 🔥 Invoice ko 90 degree ghumakar khada kiya
                     master_sku_pdfs[found_master_sku].insert_pdf(doc, from_page=page_num, to_page=page_num)
 
