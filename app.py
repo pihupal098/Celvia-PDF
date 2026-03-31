@@ -6,28 +6,32 @@ import io
 st.set_page_config(page_title="Celvia Print Portal", layout="wide")
 st.title("📦 Celvia Smart Label WMS")
 
-# 👇 APNE DONO LINKS YAHAN INBUILT KAREIN (Inverted commas ke andar) 👇
-MAPPING_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSiWvmcQ_fLTnGyrh7gLJCtr40_7Er_hGenwP0D6Ra2322Nkx6ATfh9cSHs5ILETiiIoFkA6llLc9Lp/pub?gid=0&single=true&output=csv"
-PRODUCTS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSiWvmcQ_fLTnGyrh7gLJCtr40_7Er_hGenwP0D6Ra2322Nkx6ATfh9cSHs5ILETiiIoFkA6llLc9Lp/pub?gid=158825893&single=true&output=csv"
+# 👇 APNE PERMANENT LINKS YAHAN DAALEIN (Inverted commas ke andar) 👇
+DEFAULT_MAPPING_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSiWvmcQ_fLTnGyrh7gLJCtr40_7Er_hGenwP0D6Ra2322Nkx6ATfh9cSHs5ILETiiIoFkA6llLc9Lp/pub?gid=158825893&single=true&output=csv"
+DEFAULT_PRODUCTS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSiWvmcQ_fLTnGyrh7gLJCtr40_7Er_hGenwP0D6Ra2322Nkx6ATfh9cSHs5ILETiiIoFkA6llLc9Lp/pub?gid=0&single=true&output=csv"
 
-# Sidebar Refresh System
 st.sidebar.header("⚙️ Database Connection")
-st.sidebar.success("✅ Links inbuilt hain. Database background mein connected hai.")
+st.sidebar.success("✅ Links pehle se bhare hue hain. Future mein sheet change ho toh yahan naya link daal sakte hain.")
 
+# Dabbe rahenge, par unme default links pehle se bhare honge
+mapping_url = st.sidebar.text_input("Mapping CSV Link (Tab 1)", value=DEFAULT_MAPPING_URL)
+products_url = st.sidebar.text_input("Products CSV Link (Tab 2)", value=DEFAULT_PRODUCTS_URL)
+
+# Refresh Button
 if st.sidebar.button("🔄 Refresh Database"):
-    st.rerun() # Isse AppSheet ka naya data turant fetch ho jayega
+    st.rerun() # Naya SKU AppSheet se turant fetch karne ke liye
 
 uploaded_pdf = st.file_uploader("📥 Upload Flipkart Raw Labels PDF", type=["pdf"])
 
 if uploaded_pdf:
-    if MAPPING_CSV_URL == "TAB_1_LINK_HERE" or PRODUCTS_CSV_URL == "TAB_2_LINK_HERE":
-        st.error("⚠️ Paji, pehle Code mein apne Google Sheet ke CSV links paste kijiye!")
+    if mapping_url == "TAB_1_LINK_HERE" or products_url == "TAB_2_LINK_HERE":
+        st.error("⚠️ Paji, Code mein apne Google Sheet ke CSV links paste kijiye, ya left side dabbe mein daaliye!")
     else:
         with st.spinner("Processing Labels, Rotating Invoice & Syncing... 🚀"):
             try:
-                # Load Google Sheets Data directly from inbuilt links
-                map_df = pd.read_csv(MAPPING_CSV_URL)
-                prod_df = pd.read_csv(PRODUCTS_CSV_URL)
+                # Load Google Sheets Data from the input boxes
+                map_df = pd.read_csv(mapping_url)
+                prod_df = pd.read_csv(products_url)
                 
                 # Ensure text matching is clean
                 map_df['Flipkart_SKU'] = map_df['Flipkart_SKU'].astype(str).str.strip()
@@ -66,7 +70,7 @@ if uploaded_pdf:
                     
                     # ✂️ CROP 2: INVOICE (Left 0, Right Full, Top 46% to 83% + 90 Degree Rotation)
                     page.set_cropbox(fitz.Rect(0, rect.height * 0.46, rect.width, rect.height * 0.83))
-                    page.set_rotation(90) # 🔥 Invoice ko 90 degree ghumakar KHADA kar diya!
+                    page.set_rotation(90) # 🔥 Invoice ko 90 degree ghumakar khada kiya
                     master_sku_pdfs[found_master_sku].insert_pdf(doc, from_page=page_num, to_page=page_num)
 
                 st.success("✅ Labels Cropped Tight & Invoices Rotated Automatically!")
