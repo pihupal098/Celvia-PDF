@@ -65,12 +65,12 @@ if uploaded_pdf and mapping_url and products_url:
                 # 1. LABEL: Insert page and crop top 45%
                 target_pdf.insert_pdf(doc, from_page=page_num, to_page=page_num)
                 label_page = target_pdf[-1]
-                label_page.set_cropbox(fitz.Rect(0, 0, rect.width, rect.height * 0.45))
+                label_page.set_cropbox(fitz.Rect(0, 0, rect.width, rect.height * 0.46))
                 
                 # 2. INVOICE: Insert same page again and crop bottom 55%
                 target_pdf.insert_pdf(doc, from_page=page_num, to_page=page_num)
                 invoice_page = target_pdf[-1]
-                invoice_page.set_cropbox(fitz.Rect(0, rect.height * 0.45, rect.width, rect.height))
+                invoice_page.set_cropbox(fitz.Rect(0, rect.height * 0.46, rect.width, rect.height))
 
             st.success("✅ Labels & Invoices Processed, Cropped & Sorted Automatically!")
             st.markdown("---")
