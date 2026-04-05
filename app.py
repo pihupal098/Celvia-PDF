@@ -7,12 +7,18 @@ import base64
 
 st.set_page_config(page_title="Celvia Smart Print Portal", layout="wide", page_icon="📦")
 
-# 👇 APNE LINKS AUR ID YAHAN PERMANENTLY FIX HO GAYE HAIN 👇
+# 👇 APNE LINKS AUR ID YAHAN PERMANENTLY FIX HAIN 👇
 MAPPING_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSiWvmcQ_fLTnGyrh7gLJCtr40_7Er_hGenwP0D6Ra2322Nkx6ATfh9cSHs5ILETiiIoFkA6llLc9Lp/pub?gid=158825893&single=true&output=csv"
 PRODUCTS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSiWvmcQ_fLTnGyrh7gLJCtr40_7Er_hGenwP0D6Ra2322Nkx6ATfh9cSHs5ILETiiIoFkA6llLc9Lp/pub?gid=0&single=true&output=csv"
-APP_ID = "CelviaWMS-1234567" # Agar ID change ho toh yahan update kar lena
+APP_ID = "CelviaWMS-1234567" # Aapka AppSheet ID
 
-# --- CLEAN HEADER ---
+# --- SIDEBAR: REFRESH BUTTON ONLY ---
+st.sidebar.header("⚙️ Controls")
+st.sidebar.success("✅ Database & AppSheet ID Pre-Linked!")
+if st.sidebar.button("🔄 Refresh Database"):
+    st.rerun()
+
+# --- HEADER ---
 st.title("📦 Celvia Smart Label WMS (Ultra Pro UI)")
 st.markdown("<p style='color: #64748b; font-size: 16px; font-weight: bold;'>Upload PDFs and let the magic happen.</p>", unsafe_allow_html=True)
 
@@ -20,7 +26,7 @@ st.markdown("<p style='color: #64748b; font-size: 16px; font-weight: bold;'>Uplo
 uploaded_pdfs = st.file_uploader("📥 Upload Flipkart PDF(s) Here", type=["pdf"], accept_multiple_files=True)
 
 if uploaded_pdfs:
-    with st.spinner("Analyzing PDFs, Fetching Images & Preparing Swag UI... 🚀"):
+    with st.spinner("Analyzing PDFs, Fetching Images & Preparing UI... 🚀"):
         try:
             # Backend Data Fetching
             map_df = pd.read_csv(MAPPING_URL)
@@ -59,28 +65,23 @@ if uploaded_pdfs:
                     page.set_rotation(90)
                     master_sku_pdfs[found_master_sku].insert_pdf(doc, from_page=page_num, to_page=page_num)
 
-            # --- 💥 GRAND TOTAL FLOATING BANNER 💥 ---
+            # --- GRAND TOTAL BANNER ---
             total_grand_orders = sum(len(pdf) // 2 for pdf in master_sku_pdfs.values())
 
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); 
-                        padding: 25px; 
-                        border-radius: 25px; 
-                        text-align: center; 
-                        box-shadow: 0 15px 35px rgba(255, 75, 43, 0.4); 
-                        margin-top: 15px;
-                        margin-bottom: 40px;
-                        border: 3px solid rgba(255,255,255,0.3);">
-                <h1 style="color: white; margin: 0; font-size: 2.8rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">
-                    🚀 Total Packets: 
-                    <span style="background: white; color: #ff4b2b; padding: 5px 30px; border-radius: 20px; font-size: 3.5rem; margin-left: 20px; box-shadow: inset 0 5px 10px rgba(0,0,0,0.15);">
-                        {total_grand_orders}
-                    </span>
-                </h1>
-            </div>
-            """, unsafe_allow_html=True)
+            # No indentation to prevent markdown code block bug
+            grand_total_html = f"""
+<div style="background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); padding: 25px; border-radius: 25px; text-align: center; box-shadow: 0 15px 35px rgba(255, 75, 43, 0.4); margin-top: 15px; margin-bottom: 40px; border: 3px solid rgba(255,255,255,0.3);">
+<h1 style="color: white; margin: 0; font-size: 2.8rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">
+🚀 Total Packets: 
+<span style="background: white; color: #ff4b2b; padding: 5px 30px; border-radius: 20px; font-size: 3.5rem; margin-left: 20px; box-shadow: inset 0 5px 10px rgba(0,0,0,0.15);">
+{total_grand_orders}
+</span>
+</h1>
+</div>
+"""
+            st.markdown(grand_total_html, unsafe_allow_html=True)
             
-            # --- 🌈 VIBRANT COLOR PALETTE FOR TABS ---
+            # --- VIBRANT COLOR PALETTE FOR TABS ---
             bg_gradients = [
                 "linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)", # Purple/Blue
                 "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", # Peach/Orange
@@ -112,61 +113,35 @@ if uploaded_pdfs:
                 b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
                 download_filename = f"{m_sku}_Labels_Qty_{order_qty}.pdf"
                 
-                # Pick a dynamic gradient color based on the loop counter
+                # Dynamic Gradient Color
                 card_bg = bg_gradients[loop_counter % len(bg_gradients)]
                 
                 with cols[loop_counter % 3]:
-                    # --- 🎨 THE "MAST ATTRACTIVE" CARD HTML ---
-                    st.markdown(f"""
-                    <div style="background: {card_bg}; 
-                                border-radius: 20px; 
-                                padding: 18px; 
-                                box-shadow: 0 10px 25px rgba(0,0,0,0.12); 
-                                display: flex; 
-                                flex-direction: column; 
-                                gap: 15px; 
-                                border: 2px solid rgba(255,255,255,0.6); 
-                                margin-bottom: 25px;
-                                transition: transform 0.3s ease;">
-                        
-                        <div style="display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.7); padding: 12px; border-radius: 15px; backdrop-filter: blur(5px);">
-                            
-                            <div style="background: white; padding: 4px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); flex-shrink: 0;">
-                                <img src="{img_url}" width="80" height="80" style="border-radius: 8px; object-fit: contain;">
-                            </div>
-                            
-                            <div style="flex-grow: 1;">
-                                <h4 style="margin: 0 0 6px 0; font-size: 17px; color: #0f172a; font-weight: 900; line-height: 1.2;">{prod_name}</h4>
-                                <span style="background: #1e293b; color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                                    {m_sku}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <a href="data:application/pdf;base64,{b64_pdf}" download="{download_filename}" 
-                           style="text-decoration: none;">
-                           <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
-                                       color: white; 
-                                       padding: 12px; 
-                                       border-radius: 14px; 
-                                       text-align: center; 
-                                       font-weight: 900; 
-                                       font-size: 16px; 
-                                       letter-spacing: 1px;
-                                       box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4); 
-                                       display: flex; 
-                                       justify-content: center; 
-                                       align-items: center; 
-                                       gap: 12px;">
-                                📥 DOWNLOAD 
-                                <span style="background: white; color: #059669; padding: 2px 14px; border-radius: 10px; font-size: 18px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.15);">
-                                    {order_qty}
-                                </span>
-                           </div>
-                        </a>
-                        
-                    </div>
-                    """, unsafe_allow_html=True)
+                    # Flat HTML to strictly prevent rendering as a text block
+                    card_html = f"""
+<div style="background: {card_bg}; border-radius: 20px; padding: 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 15px; border: 2px solid rgba(255,255,255,0.6); margin-bottom: 25px; transition: transform 0.3s ease;">
+<div style="display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.7); padding: 12px; border-radius: 15px; backdrop-filter: blur(5px);">
+<div style="background: white; padding: 4px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); flex-shrink: 0;">
+<img src="{img_url}" width="80" height="80" style="border-radius: 8px; object-fit: contain;">
+</div>
+<div style="flex-grow: 1;">
+<h4 style="margin: 0 0 6px 0; font-size: 17px; color: #0f172a; font-weight: 900; line-height: 1.2;">{prod_name}</h4>
+<span style="background: #1e293b; color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+{m_sku}
+</span>
+</div>
+</div>
+<a href="data:application/pdf;base64,{b64_pdf}" download="{download_filename}" style="text-decoration: none;">
+<div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px; border-radius: 14px; text-align: center; font-weight: 900; font-size: 16px; letter-spacing: 1px; box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4); display: flex; justify-content: center; align-items: center; gap: 12px;">
+📥 DOWNLOAD 
+<span style="background: white; color: #059669; padding: 2px 14px; border-radius: 10px; font-size: 18px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.15);">
+{order_qty}
+</span>
+</div>
+</a>
+</div>
+"""
+                    st.markdown(card_html, unsafe_allow_html=True)
                     
                 loop_counter += 1
                 
