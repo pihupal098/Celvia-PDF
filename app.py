@@ -3,40 +3,35 @@ import pandas as pd
 import fitz  # PyMuPDF
 import io
 import urllib.parse
+import base64
 
 st.set_page_config(page_title="Celvia Smart Print Portal", layout="wide", page_icon="📦")
-st.title("📦 Celvia Smart Label WMS (Pro UI)")
 
-# 👇 PERMANENT GOOGLE SHEET LINKS 👇
-DEFAULT_MAPPING_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSiWvmcQ_fLTnGyrh7gLJCtr40_7Er_hGenwP0D6Ra2322Nkx6ATfh9cSHs5ILETiiIoFkA6llLc9Lp/pub?gid=158825893&single=true&output=csv"
-DEFAULT_PRODUCTS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSiWvmcQ_fLTnGyrh7gLJCtr40_7Er_hGenwP0D6Ra2322Nkx6ATfh9cSHs5ILETiiIoFkA6llLc9Lp/pub?gid=0&single=true&output=csv"
+# 👇 APNE LINKS AUR ID YAHAN PERMANENTLY FIX HO GAYE HAIN 👇
+MAPPING_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSiWvmcQ_fLTnGyrh7gLJCtr40_7Er_hGenwP0D6Ra2322Nkx6ATfh9cSHs5ILETiiIoFkA6llLc9Lp/pub?gid=158825893&single=true&output=csv"
+PRODUCTS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSiWvmcQ_fLTnGyrh7gLJCtr40_7Er_hGenwP0D6Ra2322Nkx6ATfh9cSHs5ILETiiIoFkA6llLc9Lp/pub?gid=0&single=true&output=csv"
+APP_ID = "CelviaWMS-1234567" # Agar ID change ho toh yahan update kar lena
 
-# --- SIDEBAR SETTINGS ---
-st.sidebar.header("⚙️ Settings")
-mapping_url = st.sidebar.text_input("Mapping CSV Link", value=DEFAULT_MAPPING_URL)
-products_url = st.sidebar.text_input("Products CSV Link", value=DEFAULT_PRODUCTS_URL)
-
-st.sidebar.markdown("---")
-st.sidebar.header("🖼️ Photo Configuration")
-app_id = st.sidebar.text_input("AppSheet App ID", placeholder="e.g., CelviaWMS-1234567")
-
-if st.sidebar.button("🔄 Sync Database"):
-    st.rerun()
+# --- CLEAN HEADER ---
+st.title("📦 Celvia Smart Label WMS (Ultra Pro UI)")
+st.markdown("<p style='color: #64748b; font-size: 16px; font-weight: bold;'>Upload PDFs and let the magic happen.</p>", unsafe_allow_html=True)
 
 # --- MULTIPLE PDF UPLOADER ---
-uploaded_pdfs = st.file_uploader("📥 Upload Multiple Flipkart PDFs", type=["pdf"], accept_multiple_files=True)
+uploaded_pdfs = st.file_uploader("📥 Upload Flipkart PDF(s) Here", type=["pdf"], accept_multiple_files=True)
 
 if uploaded_pdfs:
-    with st.spinner("Analyzing all PDFs and Aggregating SKUs... 🚀"):
+    with st.spinner("Analyzing PDFs, Fetching Images & Preparing Swag UI... 🚀"):
         try:
-            map_df = pd.read_csv(mapping_url)
-            prod_df = pd.read_csv(products_url)
+            # Backend Data Fetching
+            map_df = pd.read_csv(MAPPING_URL)
+            prod_df = pd.read_csv(PRODUCTS_URL)
             
             map_df['Flipkart_SKU'] = map_df['Flipkart_SKU'].astype(str).str.strip()
             prod_df['SKU'] = prod_df['SKU'].astype(str).str.strip()
             
             master_sku_pdfs = {}
             
+            # Smart PDF Aggregation Engine
             for uploaded_file in uploaded_pdfs:
                 doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
                 
@@ -54,38 +49,49 @@ if uploaded_pdfs:
                         master_sku_pdfs[found_master_sku] = fitz.open()
                     
                     rect = page.rect
+                    # Crop 1: Label
                     page.set_cropbox(fitz.Rect(rect.width * 0.30, rect.height * 0.03, rect.width * 0.70, rect.height * 0.46))
                     page.set_rotation(0)
                     master_sku_pdfs[found_master_sku].insert_pdf(doc, from_page=page_num, to_page=page_num)
                     
+                    # Crop 2: Invoice (Rotated 90 deg)
                     page.set_cropbox(fitz.Rect(0, rect.height * 0.46, rect.width, rect.height * 0.83))
                     page.set_rotation(90)
                     master_sku_pdfs[found_master_sku].insert_pdf(doc, from_page=page_num, to_page=page_num)
 
-            # --- GRAND TOTAL CALCULATION ---
-            # Har PDF mein 2 page (label+invoice) hain, isliye // 2
+            # --- 💥 GRAND TOTAL FLOATING BANNER 💥 ---
             total_grand_orders = sum(len(pdf) // 2 for pdf in master_sku_pdfs.values())
 
-            # 💥 BIG CURVY COLORFUL FLOATING BANNER 💥
             st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); 
-                        padding: 20px; 
+            <div style="background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); 
+                        padding: 25px; 
                         border-radius: 25px; 
                         text-align: center; 
-                        box-shadow: 0 10px 25px rgba(17, 153, 142, 0.4); 
-                        margin-top: 10px;
-                        margin-bottom: 35px;">
-                <h1 style="color: white; margin: 0; font-size: 2.2rem; font-weight: 900; text-transform: uppercase;">
-                    🚀 Total Packets To Dispatch: 
-                    <span style="background: white; color: #11998e; padding: 5px 25px; border-radius: 20px; font-size: 3rem; margin-left: 15px; box-shadow: inset 0 3px 6px rgba(0,0,0,0.1);">
+                        box-shadow: 0 15px 35px rgba(255, 75, 43, 0.4); 
+                        margin-top: 15px;
+                        margin-bottom: 40px;
+                        border: 3px solid rgba(255,255,255,0.3);">
+                <h1 style="color: white; margin: 0; font-size: 2.8rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">
+                    🚀 Total Packets: 
+                    <span style="background: white; color: #ff4b2b; padding: 5px 30px; border-radius: 20px; font-size: 3.5rem; margin-left: 20px; box-shadow: inset 0 5px 10px rgba(0,0,0,0.15);">
                         {total_grand_orders}
                     </span>
                 </h1>
             </div>
             """, unsafe_allow_html=True)
             
+            # --- 🌈 VIBRANT COLOR PALETTE FOR TABS ---
+            bg_gradients = [
+                "linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)", # Purple/Blue
+                "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", # Peach/Orange
+                "linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)", # Lime/Green
+                "linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)", # Sky Blue
+                "linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)", # Pink/Lilac
+                "linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)"  # Silver Premium
+            ]
+            
             cols = st.columns(3)
-            col_idx = 0
+            loop_counter = 0
             
             for m_sku, pdf_doc in master_sku_pdfs.items():
                 order_qty = len(pdf_doc) // 2
@@ -97,48 +103,72 @@ if uploaded_pdfs:
                     prod_name = p_row['Product Name']
                     img_path = str(p_row.get('Product Image', ''))
                     
-                    if img_path and img_path != 'nan' and app_id:
+                    if img_path and img_path != 'nan' and APP_ID:
                         encoded_img = urllib.parse.quote(img_path)
-                        img_url = f"https://www.appsheet.com/template/gettablefileurl?appName={app_id.strip()}&tableName=Products&fileName={encoded_img}"
+                        img_url = f"https://www.appsheet.com/template/gettablefileurl?appName={APP_ID.strip()}&tableName=Products&fileName={encoded_img}"
                 
-                with cols[col_idx]:
-                    # 🎨 FLOATING CARD WITH AUTO-FIT IMAGE & IN-BUILT QUANTITY
+                # Base64 Conversion
+                pdf_bytes = pdf_doc.write()
+                b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+                download_filename = f"{m_sku}_Labels_Qty_{order_qty}.pdf"
+                
+                # Pick a dynamic gradient color based on the loop counter
+                card_bg = bg_gradients[loop_counter % len(bg_gradients)]
+                
+                with cols[loop_counter % 3]:
+                    # --- 🎨 THE "MAST ATTRACTIVE" CARD HTML ---
                     st.markdown(f"""
-                    <div style="background: #ffffff; 
-                                border-radius: 15px; 
-                                padding: 12px; 
-                                box-shadow: 0 8px 20px rgba(0,0,0,0.1); 
+                    <div style="background: {card_bg}; 
+                                border-radius: 20px; 
+                                padding: 18px; 
+                                box-shadow: 0 10px 25px rgba(0,0,0,0.12); 
                                 display: flex; 
-                                align-items: center; 
+                                flex-direction: column; 
                                 gap: 15px; 
-                                border: 1px solid #f1f5f9; 
-                                margin-bottom: 5px;">
-                        <div style="flex-shrink: 0;">
-                            <img src="{img_url}" width="80" height="80" style="border-radius: 10px; object-fit: contain; background: #fff; border: 1px solid #e2e8f0; padding: 4px;">
-                        </div>
-                        <div style="flex-grow: 1;">
-                            <h4 style="margin: 0 0 6px 0; font-size: 17px; color: #1e293b; font-weight: 800;">{prod_name}</h4>
-                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                                <span style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid #cbd5e1;">{m_sku}</span>
-                                <span style="background: #dbeafe; color: #1d4ed8; padding: 4px 8px; border-radius: 6px; font-size: 13px; font-weight: 900; border: 1px solid #bfdbfe;">📦 {order_qty} Pcs</span>
+                                border: 2px solid rgba(255,255,255,0.6); 
+                                margin-bottom: 25px;
+                                transition: transform 0.3s ease;">
+                        
+                        <div style="display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.7); padding: 12px; border-radius: 15px; backdrop-filter: blur(5px);">
+                            
+                            <div style="background: white; padding: 4px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); flex-shrink: 0;">
+                                <img src="{img_url}" width="80" height="80" style="border-radius: 8px; object-fit: contain;">
+                            </div>
+                            
+                            <div style="flex-grow: 1;">
+                                <h4 style="margin: 0 0 6px 0; font-size: 17px; color: #0f172a; font-weight: 900; line-height: 1.2;">{prod_name}</h4>
+                                <span style="background: #1e293b; color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                                    {m_sku}
+                                </span>
                             </div>
                         </div>
+                        
+                        <a href="data:application/pdf;base64,{b64_pdf}" download="{download_filename}" 
+                           style="text-decoration: none;">
+                           <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+                                       color: white; 
+                                       padding: 12px; 
+                                       border-radius: 14px; 
+                                       text-align: center; 
+                                       font-weight: 900; 
+                                       font-size: 16px; 
+                                       letter-spacing: 1px;
+                                       box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4); 
+                                       display: flex; 
+                                       justify-content: center; 
+                                       align-items: center; 
+                                       gap: 12px;">
+                                📥 DOWNLOAD 
+                                <span style="background: white; color: #059669; padding: 2px 14px; border-radius: 10px; font-size: 18px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.15);">
+                                    {order_qty}
+                                </span>
+                           </div>
+                        </a>
+                        
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # 🖨️ FULL WIDTH DOWNLOAD BUTTON
-                    pdf_output = pdf_doc.write()
-                    st.download_button(
-                        label=f"📥 Download {order_qty} {m_sku} Labels",
-                        data=pdf_output,
-                        file_name=f"{m_sku}_Labels_Qty_{order_qty}.pdf",
-                        mime="application/pdf",
-                        key=f"btn_{m_sku}_{order_qty}",
-                        use_container_width=True # Button poori width lega, ekdum tab se milkar aayega
-                    )
-                    st.markdown("<br>", unsafe_allow_html=True)
-
-                col_idx = (col_idx + 1) % 3
+                loop_counter += 1
                 
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"❌ Error: {e}")
