@@ -79,7 +79,7 @@ if uploaded_pdfs:
 <div style="background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); padding: 25px; border-radius: 25px; text-align: center; box-shadow: 0 15px 35px rgba(255, 75, 43, 0.4); margin-top: 15px; margin-bottom: 40px; border: 3px solid rgba(255,255,255,0.3);">
 <h1 style="color: white; margin: 0; font-size: 2.8rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">
 🚀 Total Packets: 
-<span style="background: white; color: #ff4b2b; padding: 5px 30px; border-radius: 20px; font-size: 3.5rem; margin-left: 20px; box-shadow: inset 0 5px 10px rgba(0,0,0,0.15);">
+<span style="background: white; color: #755ab0; padding: 5px 30px; border-radius: 20px; font-size: 3.5rem; margin-left: 20px; box-shadow: inset 0 5px 10px rgba(0,0,0,0.15);">
 {total_grand_orders}
 </span>
 </h1>
