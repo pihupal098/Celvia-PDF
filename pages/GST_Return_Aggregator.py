@@ -5,14 +5,13 @@ import re
 
 st.set_page_config(page_title="GST Portal Aggregator", layout="wide", page_icon="📊")
 
-st.title("📊 Celvia GST Aggregator (Portal Exact-Match)")
-st.markdown("Generates exact state-wise slabs, strictly isolates Taxable Value, auto-calculates taxes, and provides final payable totals.")
+st.title("📊 Celvia GST Aggregator (1:1 Portal Match)")
+st.markdown("Generates an exact 1:1 match with the GST Portal Table 7 format. No manual column moving required.")
 
 # ==========================================
 # 1. CORE LOGIC: TAB & HEADER DETECTION
 # ==========================================
 def classify_tab(tab_name):
-    # Identifying B2C and Return tabs
     tab_lower = tab_name.lower().strip()
     if any(x in tab_lower for x in ['b2c small', 'section 7(a)(2)', 'section 7(b)(2)']): return 'B2C'
     if any(x in tab_lower for x in ['b2cl cn', 'cdnur', 'section 10b(1)', 'b2cs cn']): return 'RETURN'
@@ -36,7 +35,6 @@ def clean_col(name):
 def extract_portal_data(df, category):
     df.columns = [clean_col(c) for c in df.columns]
     
-    # Vast mapping to catch ANY e-commerce column name
     col_maps = {
         'pos': ['place of supply', 'delivery state', 'state', 'ship to state', 'buyer state'],
         'rate': ['tax %', 'gst rate', 'tax percentage', 'rate', 'item tax %', 'igst rate', 'rate (%)'],
@@ -57,7 +55,6 @@ def extract_portal_data(df, category):
 
     std_df = pd.DataFrame()
     
-    # STRICT NUMBER EXTRACTOR (Solves the "0" Rate problem)
     def extract_pure_number(col_name):
         if col_name and col_name in df.columns:
             extracted = df[col_name].astype(str).str.extract(r'([+-]?\d+\.?\d*)')[0]
@@ -71,32 +68,24 @@ def extract_portal_data(df, category):
     std_df['CGST'] = extract_pure_number(find_col('cgst'))
     std_df['SGST'] = extract_pure_number(find_col('sgst'))
 
-    # Drop blank rows
     std_df = std_df.dropna(how='all')
     std_df = std_df[std_df['Taxable_Value'] != 0]
 
     if std_df.empty: return std_df
 
-    # --- THE GST SLAB LOCK ---
-    # Ensure rates are standard (5, 12, 18, 28). If it's something weird like 8.9, round it to nearest slab.
     valid_slabs = [0, 5, 12, 18, 28]
     std_df['Rate'] = std_df['Rate'].apply(lambda x: min(valid_slabs, key=lambda slab: abs(slab - x)) if x > 0 else 0)
 
-    # --- AUTO-TAX ENGINE ---
-    # Calculate missing taxes if e-commerce platform didn't provide them
     tax_missing = (std_df['IGST'] == 0) & (std_df['CGST'] == 0) & (std_df['SGST'] == 0)
     is_up = std_df['POS'].astype(str).str.lower().str.contains('09|uttar pradesh|^up$')
     
-    # Intra-state (UP)
     intra = tax_missing & is_up
     std_df.loc[intra, 'CGST'] = (std_df.loc[intra, 'Taxable_Value'] * std_df.loc[intra, 'Rate']) / 200
     std_df.loc[intra, 'SGST'] = (std_df.loc[intra, 'Taxable_Value'] * std_df.loc[intra, 'Rate']) / 200
     
-    # Inter-state (Outside UP)
     inter = tax_missing & ~is_up
     std_df.loc[inter, 'IGST'] = (std_df.loc[inter, 'Taxable_Value'] * std_df.loc[inter, 'Rate']) / 100
 
-    # --- RETURNS MATH (NEGATIVE FIX) ---
     if category == 'RETURN':
         for col in ['Taxable_Value', 'IGST', 'CGST', 'SGST']:
             std_df[col] = std_df[col].apply(lambda x: -abs(x) if x > 0 else x)
@@ -132,12 +121,11 @@ if uploaded_files:
             st.error(f"Error reading {file.name}: {e}")
 
     # ==========================================
-    # 4. PORTAL-FORMAT AGGREGATION & DISPLAY
+    # 4. 1:1 PORTAL FORMAT MATCHING
     # ==========================================
     if master_b2c:
         merged_df = pd.concat(master_b2c, ignore_index=True)
         
-        # Group strictly by State and Rate
         portal_ready_df = merged_df.groupby(['POS', 'Rate']).agg({
             'Taxable_Value': 'sum',
             'IGST': 'sum',
@@ -145,27 +133,32 @@ if uploaded_files:
             'SGST': 'sum'
         }).reset_index()
         
-        # Clean up 0 value rows and round off
         portal_ready_df = portal_ready_df[portal_ready_df['Taxable_Value'] != 0].round(2)
         
-        # Rename columns to match the Portal Image exactly
+        # 1. ADD MISSING CESS COLUMN (Required by Portal)
+        portal_ready_df['Cess'] = 0.0
+
+        # 2. REORDER COLUMNS EXACTLY AS SHOWN IN THE PORTAL IMAGE
+        portal_ready_df = portal_ready_df[['POS', 'Taxable_Value', 'Rate', 'IGST', 'CGST', 'SGST', 'Cess']]
+        
+        # 3. RENAME COLUMNS EXACTLY AS SHOWN IN THE PORTAL IMAGE (No extra symbols)
         portal_ready_df.rename(columns={
             'POS': 'Place of Supply (POS)',
-            'Rate': 'Rate (%)',
-            'Taxable_Value': 'Taxable Value (₹)',
-            'IGST': 'Integrated Tax (₹)',
-            'CGST': 'Central Tax (₹)',
-            'SGST': 'State/UT Tax (₹)'
+            'Taxable_Value': 'Taxable Value',
+            'Rate': 'Rate',
+            'IGST': 'Integrated Tax',
+            'CGST': 'Central Tax',
+            'SGST': 'State/UT Tax',
+            'Cess': 'Cess'
         }, inplace=True)
 
-        st.success("🎯 Data Aggregated Successfully according to Portal Format.")
+        st.success("🎯 Data Aggregated Successfully. Format is now a 1:1 match with the GST Portal.")
         
-        # --- GRAND TOTAL DASHBOARD ---
         st.header("2. Final Tax to Pay (Grand Totals)")
-        total_taxable = portal_ready_df['Taxable Value (₹)'].sum()
-        total_igst = portal_ready_df['Integrated Tax (₹)'].sum()
-        total_cgst = portal_ready_df['Central Tax (₹)'].sum()
-        total_sgst = portal_ready_df['State/UT Tax (₹)'].sum()
+        total_taxable = portal_ready_df['Taxable Value'].sum()
+        total_igst = portal_ready_df['Integrated Tax'].sum()
+        total_cgst = portal_ready_df['Central Tax'].sum()
+        total_sgst = portal_ready_df['State/UT Tax'].sum()
         total_tax = total_igst + total_cgst + total_sgst
         
         col1, col2, col3, col4, col5 = st.columns(5)
@@ -175,20 +168,18 @@ if uploaded_files:
         col4.metric("Total SGST", f"₹ {total_sgst:,.2f}")
         col5.metric("🔥 Total Tax Payable", f"₹ {total_tax:,.2f}")
 
-        # --- PORTAL DATA TABLE ---
-        st.header("3. Portal Exact-Match Table (Table 7)")
-        st.markdown("Copy these values exactly as shown into the GST Portal dropdowns and text boxes.")
+        st.header("3. Exact Portal Sequence (Table 7)")
+        st.markdown("You can now directly reference this table line-by-line for the portal.")
         st.dataframe(portal_ready_df, use_container_width=True)
 
-        # Download Button
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             portal_ready_df.to_excel(writer, sheet_name='Portal_B2C_Data', index=False)
             
         st.download_button(
-            label="📥 Download Portal-Ready Excel",
+            label="📥 Download 1:1 Portal-Ready Excel",
             data=output.getvalue(),
-            file_name="Celvia_Portal_Ready_B2C.xlsx",
+            file_name="Celvia_Portal_Exact_B2C.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     else:
