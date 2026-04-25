@@ -49,7 +49,6 @@ if uploaded_pdfs:
                             found_master_sku = row['Master_SKU']
                             break
                     
-                    # Regex logic for "Total Qty: X"
                     qty_match = re.search(r'(?i)Total\s+Qty\s*:\s*(\d+)', text)
                     if not qty_match: 
                         qty_match = re.search(r'(?i)(?:Quantity|Qty)\s*:\s*(\d+)', text)
@@ -79,11 +78,11 @@ if uploaded_pdfs:
             grand_total_items = sum( sum((len(pdf)//2)*qty for qty, pdf in data.items()) for sku, data in master_sku_grouped.items())
 
             st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 35px; border: 2px solid #334155; box-shadow: 0 10px 20px rgba(0,0,0,0.15);">
-                <h1 style="color: white; margin: 0; font-size: 2.2rem; font-weight: 900;">
-                    📦 Total Packets: <span style="color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 5px 15px; border-radius: 10px;">{grand_total_orders}</span> 
-                    <span style="color: #475569; font-size: 1.8rem; margin: 0 15px;">|</span> 
-                    🛒 Total Items Inside: <span style="color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 5px 15px; border-radius: 10px;">{grand_total_items}</span>
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 35px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+                <h1 style="color: white; margin: 0; font-size: 2.2rem; font-weight: 900; letter-spacing: 1px;">
+                    📦 Total Packets: <span style="color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 5px 18px; border-radius: 12px;">{grand_total_orders}</span> 
+                    <span style="color: #475569; font-size: 1.8rem; margin: 0 20px;">|</span> 
+                    🛒 Total Items Inside: <span style="color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 5px 18px; border-radius: 12px;">{grand_total_items}</span>
                 </h1>
             </div>
             """, unsafe_allow_html=True)
@@ -101,23 +100,23 @@ if uploaded_pdfs:
 
             for idx, (m_sku, qty_dict) in enumerate(sorted_master_skus):
                 with cols[idx % 3]:
-                    # Create the physical card container
+                    # Main Card Container
                     with st.container(border=True):
                         prod_name = prod_df[prod_df['SKU'] == m_sku].iloc[0]['Product Name'] if m_sku in prod_df['SKU'].values else "Unknown SKU"
                         img_path = str(prod_df[prod_df['SKU'] == m_sku].iloc[0].get('Product Image', '')) if m_sku in prod_df['SKU'].values else ""
                         img_url = f"https://www.appsheet.com/template/gettablefileurl?appName={app_id.strip()}&tableName=Products&fileName={urllib.parse.quote(img_path)}" if img_path and img_path != 'nan' else "https://via.placeholder.com/150"
                         card_bg = bg_gradients[idx % len(bg_gradients)]
 
-                        # Header HTML (Image + SKU) 
+                        # Header HTML (Vibrant Gradient + Frosted Glass SKU Badge)
                         st.markdown(f'''
-                        <div style="background: {card_bg}; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                            <div style="display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.85); padding: 12px; border-radius: 10px;">
-                                <div style="background: white; padding: 4px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                                    <img src="{img_url}" style="width: 65px; height: 65px; object-fit: contain; border-radius: 6px;">
+                        <div style="background: {card_bg}; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.7);">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="background: rgba(255,255,255,0.9); padding: 6px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                                    <img src="{img_url}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">
                                 </div>
                                 <div style="flex-grow: 1;">
-                                    <div style="font-size: 14px; font-weight: 900; line-height: 1.2; color: #0f172a; margin-bottom: 4px;">{prod_name[:35]}...</div>
-                                    <div style="font-size: 11px; background: #1e293b; color: white; display: inline-block; padding: 3px 8px; border-radius: 6px; font-weight: bold; letter-spacing: 0.5px;">{m_sku}</div>
+                                    <div style="font-size: 15px; font-weight: 900; line-height: 1.2; color: #0f172a; margin-bottom: 5px;">{prod_name[:35]}...</div>
+                                    <div style="font-size: 12px; background: rgba(255,255,255,0.6); color: #0f172a; display: inline-block; padding: 4px 10px; border-radius: 20px; font-weight: 800; border: 1px solid rgba(255,255,255,0.8); letter-spacing: 0.5px;">{m_sku}</div>
                                 </div>
                             </div>
                         </div>
@@ -136,7 +135,6 @@ if uploaded_pdfs:
                             sku_total_pcs += pcs_count
                             total_sku_pdf.insert_pdf(pdf_doc)
                             
-                            # Auto-Naming Logic
                             if qty == 1:
                                 lbl = "Single"
                             elif qty == 2:
@@ -148,15 +146,15 @@ if uploaded_pdfs:
                                 
                             file_name = f"{m_sku}_Labels_{lbl}_ord_{order_count}.pdf"
                             
-                            # Using Streamlit Columns to make Text and Button INLINE
-                            col1, col2 = st.columns([0.6, 0.4], vertical_alignment="center")
+                            # Using Streamlit Columns to make Text and Button perfectly INLINE
+                            col1, col2 = st.columns([0.55, 0.45], vertical_alignment="center")
                             
                             with col1:
-                                st.markdown(f"<div style='font-size:13px; font-weight:800; color: #334155; margin-top: 8px;'>{lbl}: {order_count} ord, {pcs_count} pcs</div>", unsafe_allow_html=True)
+                                st.markdown(f"<div style='font-size:14px; font-weight:800; color: #1e293b;'>{lbl}: {order_count} ord, {pcs_count} pcs</div>", unsafe_allow_html=True)
                             
                             with col2:
                                 st.download_button(
-                                    label="📥 PDF", 
+                                    label="📥 Download PDF", 
                                     data=pdf_doc.write(), 
                                     file_name=file_name, 
                                     mime="application/pdf", 
@@ -164,16 +162,12 @@ if uploaded_pdfs:
                                     use_container_width=True
                                 )
 
-                        st.markdown("<hr style='margin: 5px 0; border-color: #e2e8f0;'>", unsafe_allow_html=True)
+                        # Sleek Dashed Divider
+                        st.markdown("<hr style='margin: 10px 0; border: none; border-top: 1.5px dashed #cbd5e1;'>", unsafe_allow_html=True)
 
-                        # --- FOOTER TOTAL & MASTER DOWNLOAD ---
-                        st.markdown(f"""
-                        <div style='background: #f1f5f9; padding: 6px; border-radius: 8px; text-align:center; font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 10px; border: 1px solid #cbd5e1;'>
-                            Total: {sku_total_orders} ord, {sku_total_pcs} pcs
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
+                        # --- FOOTER: BUTTON FIRST, TOTAL TEXT BELOW ---
                         total_file_name = f"{m_sku}_Labels_TOTAL_ord_{sku_total_orders}.pdf"
+                        
                         st.download_button(
                             label=f"📥 DOWNLOAD ALL", 
                             data=total_sku_pdf.write(), 
@@ -183,6 +177,13 @@ if uploaded_pdfs:
                             type="primary", 
                             key=f"btn_all_{m_sku}"
                         )
+                        
+                        # Beautiful Total Text strictly below the button
+                        st.markdown(f"""
+                        <div style='text-align:center; font-size: 15px; font-weight: 900; color: #ef4444; margin-top: 6px;'>
+                            Total: {sku_total_orders} ord, {sku_total_pcs} pcs
+                        </div>
+                        """, unsafe_allow_html=True)
 
         except Exception as e:
             st.error(f"❌ Execution Error: {e}")
