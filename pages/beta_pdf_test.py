@@ -132,4 +132,88 @@ if uploaded_pdfs:
                 # --- INNER ROWS FOR QUANTITIES (WITH HIGHLIGHTS) ---
                 for qty in sorted(qty_dict.keys()):
                     pdf_doc = qty_dict[qty]
-                    order_count = len(pdf_doc) //
+                    order_count = len(pdf_doc) // 2
+                    pcs_count = order_count * qty
+                    sku_total_orders += order_count
+                    sku_total_pcs += pcs_count
+                    total_sku_pdf.insert_pdf(pdf_doc)
+                    
+                    # Highlight Logic
+                    if qty == 1: 
+                        lbl = "Single"
+                        row_bg = "rgba(255,255,255,0.5)" # Safe Glass
+                        border_col = "rgba(255,255,255,0.6)"
+                    elif qty == 2: 
+                        lbl = "Double"
+                        row_bg = "rgba(251, 146, 60, 0.3)" # Orange Warning
+                        border_col = "rgba(251, 146, 60, 0.6)"
+                    elif qty == 3: 
+                        lbl = "Triple"
+                        row_bg = "rgba(239, 68, 68, 0.3)" # Red Danger
+                        border_col = "rgba(239, 68, 68, 0.6)"
+                    else: 
+                        lbl = f"{qty}_Qty"
+                        row_bg = "rgba(239, 68, 68, 0.4)" # Deep Red
+                        border_col = "rgba(239, 68, 68, 0.8)"
+                        
+                    file_name = f"{m_sku}_Labels_{lbl}_ord_{order_count}.pdf"
+                    b64_pdf = base64.b64encode(pdf_doc.write()).decode('utf-8')
+                    
+                    # Stylish Italic Row with Highlight
+                    row = f"""
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: {row_bg}; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid {border_col}; box-shadow: inset 0 2px 4px rgba(255,255,255,0.4);">
+                        <span style="font-size: 14px; font-weight: 800; color: #0f172a; font-style: italic;">
+                            {lbl}: {order_count} ord, {pcs_count} pcs
+                        </span>
+                        <a href="data:application/pdf;base64,{b64_pdf}" download="{file_name}" style="text-decoration: none;">
+                            <div style="background: rgba(255,255,255,0.95); color: #0f172a; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 900; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;">📥 PDF</div>
+                        </a>
+                    </div>
+                    """
+                    rows_html += row
+
+                total_file_name = f"{m_sku}_Labels_TOTAL_ord_{sku_total_orders}.pdf"
+                total_b64_pdf = base64.b64encode(total_sku_pdf.write()).decode('utf-8')
+
+                # --- UNIFIED CARD HTML (TOTAL AT THE BOTTOM) ---
+                card_html = f"""
+                <div style="background: {card_bg}; padding: 20px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 15px; border: 2px solid rgba(255,255,255,0.8); margin-bottom: 25px;">
+                    
+                    <div style="display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.6); padding: 12px; border-radius: 16px; box-shadow: inset 0 2px 5px rgba(255,255,255,0.5);">
+                        <div style="background: white; padding: 4px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); flex-shrink: 0; width: 75px; height: 75px; display: flex; justify-content: center; align-items: center;">
+                            <img src="{img_url}" style="max-width: 65px; max-height: 65px; border-radius: 8px; object-fit: contain;">
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <h4 style="margin: 0 0 6px 0; font-size: 16px; color: #0f172a; font-weight: 900; line-height: 1.2; font-style: italic;">{prod_name[:40]}</h4>
+                            <span style="background: rgba(255,255,255,0.9); color: #0f172a; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 900; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                {m_sku}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        {rows_html}
+                    </div>
+                    
+                    <hr style="margin: 0; border: none; border-top: 1.5px dashed rgba(0,0,0,0.2);">
+                    
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <a href="data:application/pdf;base64,{total_b64_pdf}" download="{total_file_name}" style="text-decoration: none;">
+                            <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; padding: 14px; border-radius: 16px; text-align: center; font-weight: 900; font-size: 15px; box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3);">
+                                📥 DOWNLOAD ALL
+                            </div>
+                        </a>
+                        <div style="text-align: center; font-size: 15px; font-weight: 900; color: #0f172a; background: rgba(255,255,255,0.5); padding: 8px; border-radius: 12px; font-style: italic; border: 1px solid rgba(255,255,255,0.8);">
+                            Total: <span style="color: #ef4444;">{sku_total_orders} ord, {sku_total_pcs} pcs</span>
+                        </div>
+                    </div>
+                    
+                </div>
+                """
+                with cols[loop_counter % 3]:
+                    st.markdown(card_html.replace('\n', ''), unsafe_allow_html=True)
+                
+                loop_counter += 1
+                
+        except Exception as e:
+            st.error(f"❌ Error Processing PDFs: {e}")
