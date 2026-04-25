@@ -88,7 +88,7 @@ if uploaded_pdfs:
             </div>
             """, unsafe_allow_html=True)
 
-            # --- UI GRID WITH NATIVE BUTTONS ---
+            # --- UI GRID ---
             cols = st.columns(3)
             bg_gradients = [
                 "linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)", 
@@ -108,7 +108,7 @@ if uploaded_pdfs:
                         img_url = f"https://www.appsheet.com/template/gettablefileurl?appName={app_id.strip()}&tableName=Products&fileName={urllib.parse.quote(img_path)}" if img_path and img_path != 'nan' else "https://via.placeholder.com/150"
                         card_bg = bg_gradients[idx % len(bg_gradients)]
 
-                        # Header HTML (Image + SKU) with vibrant gradient
+                        # Header HTML (Image + SKU) 
                         st.markdown(f'''
                         <div style="background: {card_bg}; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                             <div style="display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.85); padding: 12px; border-radius: 10px;">
@@ -126,7 +126,7 @@ if uploaded_pdfs:
                         sku_total_orders, sku_total_pcs = 0, 0
                         total_sku_pdf = fitz.open()
 
-                        # Lines for Qty 1, Qty 2, etc. with Native Download Buttons
+                        # --- INLINE ROWS FOR EACH QUANTITY ---
                         for qty in sorted(qty_dict.keys()):
                             pdf_doc = qty_dict[qty]
                             order_count = len(pdf_doc) // 2
@@ -136,7 +136,7 @@ if uploaded_pdfs:
                             sku_total_pcs += pcs_count
                             total_sku_pdf.insert_pdf(pdf_doc)
                             
-                            # Auto-Naming Logic exactly as requested
+                            # Auto-Naming Logic
                             if qty == 1:
                                 lbl = "Single"
                             elif qty == 2:
@@ -148,24 +148,28 @@ if uploaded_pdfs:
                                 
                             file_name = f"{m_sku}_Labels_{lbl}_ord_{order_count}.pdf"
                             
-                            # UI Row
-                            st.markdown(f"<div style='font-size:13px; font-weight:800; color: #334155; margin-bottom: 5px;'>{lbl} item: {order_count} order, pcs: {pcs_count}</div>", unsafe_allow_html=True)
-                            st.download_button(
-                                label=f"📥 Download {lbl} PDF", 
-                                data=pdf_doc.write(), 
-                                file_name=file_name, 
-                                mime="application/pdf", 
-                                key=f"btn_{m_sku}_{qty}",
-                                use_container_width=True
-                            )
-                            st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+                            # Using Streamlit Columns to make Text and Button INLINE
+                            col1, col2 = st.columns([0.6, 0.4], vertical_alignment="center")
+                            
+                            with col1:
+                                st.markdown(f"<div style='font-size:13px; font-weight:800; color: #334155; margin-top: 8px;'>{lbl}: {order_count} ord, {pcs_count} pcs</div>", unsafe_allow_html=True)
+                            
+                            with col2:
+                                st.download_button(
+                                    label="📥 PDF", 
+                                    data=pdf_doc.write(), 
+                                    file_name=file_name, 
+                                    mime="application/pdf", 
+                                    key=f"btn_{m_sku}_{qty}",
+                                    use_container_width=True
+                                )
 
-                        st.markdown("<hr style='margin: 10px 0; border-color: #e2e8f0;'>", unsafe_allow_html=True)
+                        st.markdown("<hr style='margin: 5px 0; border-color: #e2e8f0;'>", unsafe_allow_html=True)
 
-                        # Footer Total & Master Download Button
+                        # --- FOOTER TOTAL & MASTER DOWNLOAD ---
                         st.markdown(f"""
-                        <div style='background: #f1f5f9; padding: 8px; border-radius: 8px; text-align:center; font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 10px; border: 1px solid #cbd5e1;'>
-                            Total: {sku_total_orders} order, {sku_total_pcs} pcs
+                        <div style='background: #f1f5f9; padding: 6px; border-radius: 8px; text-align:center; font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 10px; border: 1px solid #cbd5e1;'>
+                            Total: {sku_total_orders} ord, {sku_total_pcs} pcs
                         </div>
                         """, unsafe_allow_html=True)
                         
