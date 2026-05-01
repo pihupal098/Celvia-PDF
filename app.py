@@ -32,8 +32,8 @@ uploaded_pdfs = st.file_uploader("📥 Upload Flipkart PDF(s) Here", type=["pdf"
 if uploaded_pdfs:
     with st.spinner("Analyzing PDFs, Sorting by Quantity & Preparing Premium UI... 🚀"):
         try:
-            map_df = pd.read_csv(mapping_url)
-            prod_df = pd.read_csv(products_url)
+            map_df = pd.read_csv(mapping_url).fillna("")
+            prod_df = pd.read_csv(products_url).fillna("")
             
             map_df['Flipkart_SKU'] = map_df['Flipkart_SKU'].astype(str).str.strip()
             prod_df['SKU'] = prod_df['SKU'].astype(str).str.strip()
