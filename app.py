@@ -35,7 +35,9 @@ if uploaded_pdfs:
             map_df = pd.read_csv(mapping_url).fillna("")
             prod_df = pd.read_csv(products_url).fillna("")
             
+            # THE FIX: Ensuring both SKUs are strictly strings and stripped of spaces
             map_df['Flipkart_SKU'] = map_df['Flipkart_SKU'].astype(str).str.strip()
+            map_df['Master_SKU'] = map_df['Master_SKU'].astype(str).str.strip() # Added safety here
             prod_df['SKU'] = prod_df['SKU'].astype(str).str.strip()
             
             master_sku_grouped = {}
@@ -49,9 +51,12 @@ if uploaded_pdfs:
                     
                     found_master_sku = "Unmapped_SKU"
                     for index, row in map_df.iterrows():
-                        if row['Flipkart_SKU'] in text:
-                            found_master_sku = row['Master_SKU']
-                            break
+                        f_sku = row['Flipkart_SKU']
+                        # THE FIX: Do not search if the SKU is blank or "nan"
+                        if f_sku and f_sku.lower() != "nan": 
+                            if f_sku in text:
+                                found_master_sku = row['Master_SKU']
+                                break
                     
                     item_qty = 1 
                     qty_match = re.search(r'(?i)Total\s+Qty\s*:\s*(\d+)', text)
